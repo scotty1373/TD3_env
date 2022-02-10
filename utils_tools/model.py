@@ -32,8 +32,29 @@ class Net_Builder(torch.nn.Module):
         return loc['common']
 
 
+class Model(torch.nn.Module):
+    def __init__(self, inner_shape, net_structure, out_shape):
+        super(Model, self).__init__()
+        self.inner_shape = inner_shape
+        self.out_shape = out_shape
+        self.net_structure = net_structure
+        layer = []
+        for idx, hidden_unit in enumerate(self.net_structure):
+            if not idx:
+                layer.append(nn.Linear(inner_shape, hidden_unit))
+                layer.append(nn.ReLU(inplace=True))
+            else:
+                layer.append(nn.Linear(self.net_structure[idx - 1], hidden_unit))
+                layer.append(nn.ReLU(inplace=True))
+        layer.append(nn.Linear(self.net_structure[-1], self.out_shape))
+        self.net_seq = nn.Sequential(*layer)
+
+    def forward(self, input_tensor):
+        return self.net_seq(input_tensor)
+
+
 if __name__ == '__main__':
-    net = Net_Builder(3, [128, 64, 32, 1], 1)
+    net = Model(3, [128, 64, 32], 1)
     x = torch.randn((10, 3))
     y = torch.randn((10, 1))
     opt = torch.optim.Adam(lr=1e-1, params=net.parameters())
@@ -44,4 +65,4 @@ if __name__ == '__main__':
     l1_loss = loss(out, y)
     l1_loss.backward()
     opt.step()
-    print(net.dense0.weight.grad_fn)
+    print(net.net_seq[0].weight.grad_fn)

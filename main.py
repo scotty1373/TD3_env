@@ -7,6 +7,9 @@ from utils_tools.common import log2json, visualize_result
 from utils_tools.TD3 import TD3
 import torch
 import numpy as np
+import warnings
+
+warnings.filterwarnings("ignore")
 
 MAX_TIMESTEP = 2000
 MAX_EPISODE = 300
@@ -31,16 +34,16 @@ if __name__ == '__main__':
     count = 0
     ep_history = []
 
-    ep_tqdm = tqdm(range(MAX_EPISODE))
+    ep_tqdm = tqdm(range(MAX_EPISODE), position=0, leave=False, colour='green', ncols=80)
     for epoch in ep_tqdm:
         obs = env.reset()
         obs = obs.reshape(1, 3)
         ep_rh = 0
         td3.ep += 1
 
-        ep_step_tqdm = tqdm(range(MAX_TIMESTEP))
+        ep_step_tqdm = tqdm(range(MAX_TIMESTEP), position=1, leave=False, colour='red', ncols=80)
         for t in ep_step_tqdm:
-            env.render()
+            # env.render()
             action = td3.get_action(obs)
             obs_t1, reward, done, _ = env.step(action.detach().numpy().reshape(1, 1))
             obs_t1 = obs_t1.reshape(1, 3)
@@ -57,6 +60,14 @@ if __name__ == '__main__':
             ep_step_tqdm.set_description(f'epochs: {td3.ep}, ep_reward: {ep_rh},'
                                          f'action: {action.detach().numpy().reshape(1, 1)}'
                                          f'reward: {reward}')
+
+            # save to json log file
+            log_tag = {'epochs': td3.ep,
+                       'timestep': td3.t,
+                       'ep_reward': ep_rh.item(),
+                       'action': action.detach().numpy().item(),
+                       'reward': reward.item()}
+
         ep_history.append(ep_rh)
 
     ep_history = np.array(ep_history)

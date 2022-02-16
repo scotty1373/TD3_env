@@ -3,7 +3,7 @@ import gym
 from tqdm import tqdm
 import sys
 import os
-from utils_tools.common import log2json, visualize_result
+from utils_tools.common import log2json, visualize_result, dirs_creat, seed_torch
 from utils_tools.TD3 import TD3
 import torch
 import numpy as np
@@ -14,6 +14,8 @@ warnings.filterwarnings("ignore")
 MAX_TIMESTEP = 2000
 MAX_EPISODE = 300
 TRAINABLE = True
+LOGGER_KEYS = ['mode', 'epochs', 'timestep', 'ep_reward', 'reward', 'action']
+
 
 torch.set_printoptions(sci_mode=False)
 
@@ -28,8 +30,13 @@ if __name__ == '__main__':
     action_dim = env.action_space.shape[0]
     state_shape = env.observation_space.shape[0]          # [1., 1., 1.]  ~  [-1.,  0.,  0.]
 
+    # 初始化td3算法
     td3 = TD3(action_space=action_shape, state_shape=state_shape,
               action_dim=action_dim)
+
+    # 初始化logger
+    logger_json = log2json()
+    logger_csv = log2json(type_json=False, logger_keys=LOGGER_KEYS)
 
     count = 0
     ep_history = []
@@ -41,7 +48,7 @@ if __name__ == '__main__':
         ep_rh = 0
         td3.ep += 1
 
-        ep_step_tqdm = tqdm(range(MAX_TIMESTEP), position=1, leave=False, colour='red', ncols=80)
+        ep_step_tqdm = tqdm(range(MAX_TIMESTEP), position=1, leave=False, colour='red')
         for t in ep_step_tqdm:
             # env.render()
             action = td3.get_action(obs)
@@ -62,11 +69,15 @@ if __name__ == '__main__':
                                          f'reward: {reward}')
 
             # save to json log file
-            log_tag = {'epochs': td3.ep,
+            log_tag = {'mode': 'train',
+                       'epochs': td3.ep,
                        'timestep': td3.t,
                        'ep_reward': ep_rh.item(),
-                       'action': action.detach().numpy().item(),
-                       'reward': reward.item()}
+                       'reward': reward.item(),
+                       'action': action.detach().numpy().item()}
+
+            logger_json.write2json(log_tag)
+            logger_csv.write2csv(log_tag)
 
         ep_history.append(ep_rh)
 

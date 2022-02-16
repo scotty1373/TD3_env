@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+import csv
 import json
 import time
 import pandas as pd
@@ -12,26 +13,39 @@ TIMESTAMP = str(round(time.time()))
 
 
 class log2json:
-    def __init__(self, filename, type_json=True, log_path='log'):
+    def __init__(self, filename='train_log', type_json=True, log_path='log', logger_keys=None):
         self.root_path = os.getcwd()
         self.log_path = os.path.join(self.root_path, log_path, TIMESTAMP)
+
+        assert os.path.exists(os.path.join(self.root_path, log_path))
+
+        # 创建当前训练log保存目录
+        try:
+            os.makedirs(self.log_path)
+        except FileExistsError as e:
+            print(e)
+
         if type_json:
             filename = os.path.join(self.log_path, filename + '.json')
             self.fp = open(filename, 'w')
         else:
             filename = os.path.join(self.log_path, filename + '.csv')
-            self.fp = open(filename, 'w')
+            self.fp = open(filename, 'w', encoding='utf-8', newline='')
+            self.csv_writer = csv.writer(self.fp)
+            self.csv_keys = logger_keys
+            self.csv_writer.writerow(self.csv_keys)
 
     def flush_write(self, string):
         self.fp.write(string + '\n')
         self.fp.flush()
 
-    def write2json(self, log_json):
-        format_str = json.dumps(log_json)
+    def write2json(self, log_dict):
+        format_str = json.dumps(log_dict)
         self.flush_write(format_str)
 
-    def write2csv(self):
-        pass
+    def write2csv(self, log_dict):
+        format_str = list(log_dict.values())
+        self.csv_writer.writerow(format_str)
 
 
 class visualize_result:

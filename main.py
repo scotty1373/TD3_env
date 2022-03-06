@@ -41,7 +41,7 @@ if __name__ == '__main__':
     count = 0
     ep_history = []
 
-    ep_tqdm = tqdm(range(MAX_EPISODE), position=0, leave=False, colour='green', ncols=80)
+    ep_tqdm = tqdm(range(MAX_EPISODE), position=0, leave=False, colour='green')
     for epoch in ep_tqdm:
         obs = env.reset()
         obs = obs.reshape(1, 3)
@@ -50,7 +50,7 @@ if __name__ == '__main__':
 
         ep_step_tqdm = tqdm(range(MAX_TIMESTEP), position=1, leave=False, colour='red')
         for t in ep_step_tqdm:
-            # env.render()
+            env.render()
             action = td3.get_action(obs)
             obs_t1, reward, done, _ = env.step(action.detach().numpy().reshape(1, 1))
             obs_t1 = obs_t1.reshape(1, 3)
@@ -64,9 +64,9 @@ if __name__ == '__main__':
             obs = obs_t1
             ep_rh += reward
 
-            ep_step_tqdm.set_description(f'epochs: {td3.ep}, ep_reward: {ep_rh},'
-                                         f'action: {action.detach().numpy().reshape(1, 1)}'
-                                         f'reward: {reward}')
+            ep_step_tqdm.set_description(f'epochs: {td3.ep:.4f}, ep_reward: {ep_rh.item():.4f}, '
+                                         f'action: {action.detach().numpy().reshape(1, 1).item():.4f}, '
+                                         f'reward: {reward.item():.4f}')
 
             # save to json log file
             log_tag = {'mode': 'train',

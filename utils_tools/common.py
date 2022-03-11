@@ -4,12 +4,16 @@ import json
 import time
 import pandas as pd
 import matplotlib.pyplot as plt
-import seaborn as sea
+import seaborn as sns
 import numpy as np
 import os
 import torch
+from sys import platform
 
 TIMESTAMP = str(round(time.time()))
+KEYs_Train = ['mode', 'epochs', 'timestep', 'ep_reward']
+
+FILE_NAME = ['../log/1647000521/train_log.json', '../log/1647002312/train_log.json']
 
 
 class log2json:
@@ -50,10 +54,48 @@ class log2json:
 
 class visualize_result:
     def __init__(self):
-        pass
+        sns.set_style("dark")
+        sns.axes_style("darkgrid")
+        sns.despine()
+        sns.set_context("paper")
 
-    def reward(self):
-        pass
+    @staticmethod
+    def json2DataFrame(file_path):
+        result_train = dict()
+        # 创建train mode数据键值
+        for key_str in KEYs_Train:
+            result_train[key_str] = []
+        # 文件读取
+        with open(file_path, 'r') as fp:
+            while True:
+                json_line_str = fp.readline().rstrip('\n')
+                if not json_line_str:
+                    break
+                _, temp_dict = json_line_extract(json_line_str)
+                for key_iter in result_train.keys():
+                    result_train[key_iter].append(temp_dict[key_iter])
+
+        assert len(result_train['mode']) == len(result_train['ep_reward'])
+        df_train = pd.DataFrame.from_dict(result_train)
+        df_train.head()
+        return df_train
+
+    @staticmethod
+    def reward(logDataFrame):
+        for temp in logDataFrame:
+            del temp['mode']
+            del temp['timestep']
+
+        df_insert = logDataFrame[0]
+        for idx, df_log in enumerate(logDataFrame[1:]):
+            df_insert.insert(idx, f'ep_reward_{idx}', df_log['ep_reward'])
+        df_insert.head()
+        df_insert = pd.melt(df_insert, 'epochs', var_name='workers', value_name='ep_reward')
+
+        sns.lineplot(data=df_insert, x='epochs', y='ep_reward')
+        # plt.xticks(np.linspace(0, df_train.index.values.max()*100, (df_train.index.values.max() + 1)))
+        plt.xlabel('epochs')
+        plt.show()
 
     def uni_loss(self):
         pass
@@ -89,3 +131,23 @@ def seed_torch(seed=42):
         torch.backends.cudnn.deterministic = True       # 设置每次返回的卷积算法是一致的
         torch.backends.cudnn.benchmark = True      # cuDNN使用的非确定性算法自动寻找最适合当前配置的高效算法，设置为False
         torch.backends.cudnn.enabled = True        # pytorch使用cuDNN加速
+
+
+def json_line_extract(json_format_str):
+    dict_data = json.loads(json_format_str)
+    mode_log = True
+    if dict_data['mode'] == 'val':
+        mode_log = False
+    return mode_log, dict_data
+
+
+if __name__ == '__main__':
+    vg = visualize_result()
+    df = []
+    for fp in FILE_NAME:
+        df.append(vg.json2DataFrame(fp))
+
+    vg.reward(df)
+
+
+
